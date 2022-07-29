@@ -1,13 +1,13 @@
 import {Request, Response} from "express";
 import {QueryError, RowDataPacket} from "mysql2";
 import {JwtPayload, VerifyErrors} from "jsonwebtoken";
-import {User} from "../../interfaces/User";
-import {TypedRequestUser} from "../../interfaces/Request";
+import {User} from "../interfaces/User";
+import {TypedRequestUser} from "../interfaces/Request";
 
 const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const Joi = require('joi');
-const { generateAccessToken, generateRefreshToken } = require("../../auth/authManager");
+const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
 
 function validateUser(user: object) {

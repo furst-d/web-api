@@ -1,6 +1,6 @@
-import {MysqlCallback} from "../../interfaces/Callback";
+import {MysqlCallback} from "../interfaces/Callback";
 import {QueryError, RowDataPacket} from "mysql2";
-import {User} from "../../interfaces/User";
+import {User} from "../interfaces/User";
 
 const pool = require("../../config/database");
 const {encrypt} = require("../crypto/cryptoManager");

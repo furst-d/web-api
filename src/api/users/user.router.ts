@@ -5,7 +5,7 @@ const {
     logout,
     testAuth
 } = require("./user.controller");
-const { authenticateToken } = require("../../auth/authManager");
+const { authenticateToken } = require("../auth/authManager");
 const router = require("express").Router();
 
 router.post("/login", login);
