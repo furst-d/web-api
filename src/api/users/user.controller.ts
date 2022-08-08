@@ -4,7 +4,7 @@ import {JwtPayload, VerifyErrors} from "jsonwebtoken";
 import {User} from "../interfaces/User";
 import {TypedRequestUser} from "../interfaces/Request";
 
-const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken} = require("./user.service");
+const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const Joi = require('joi');
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
@@ -175,11 +175,21 @@ module.exports = {
         });
     },
 
-    testAuth: (req: TypedRequestUser<JwtPayload>, res: Response) => {
-        return res.json({
-            status_code: 200,
-            status_message: "OK",
-            user: req.user
+    getPages: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        getPermittedPages(req.user.id, (error: QueryError | null, results: RowDataPacket[]) => {
+            if (error) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: error.message
+                });
+            }
+            if(results) {
+                return res.json({
+                    status_code: 200,
+                    status_message: "OK",
+                    data: results
+                });
+            }
         });
     },
 }
