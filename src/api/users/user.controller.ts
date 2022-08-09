@@ -156,9 +156,9 @@ module.exports = {
         });
     },
 
-    logout: (req: Request, res: Response) => {
+    logout: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const refreshToken = req.body.token;
-        const userId = jwt.decode(refreshToken).user.id;
+        const userId = req.user.id;
         removeRefreshToken(userId, refreshToken, (error: QueryError | null, results: RowDataPacket[]) => {
             if (error) {
                 return res.status(500).json({
