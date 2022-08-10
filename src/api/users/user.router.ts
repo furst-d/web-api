@@ -5,13 +5,13 @@ const {
     logout,
     getPages
 } = require("./user.controller");
-const { authenticateToken } = require("../auth/authManager");
+const { authenticateUser, authorizeUser } = require("../auth/authManager");
 const router = require("express").Router();
 
 router.post("/login", login);
-router.post("/register", authenticateToken, register);
+router.post("/register", authenticateUser, authorizeUser([6]), register);
 router.post("/refresh-token", refreshToken);
-router.delete("/logout", authenticateToken, logout);
-router.get("/pages", authenticateToken, getPages);
+router.delete("/logout", authenticateUser, logout);
+router.get("/pages", authenticateUser, getPages);
 
 module.exports = router;

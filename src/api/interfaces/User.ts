@@ -3,4 +3,6 @@ export interface User {
     name: string;
     lastname: string;
     password: string;
+    confirmation_token: string;
+    permitted_pages: string;
 }

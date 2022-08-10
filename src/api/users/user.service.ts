@@ -20,12 +20,14 @@ module.exports = {
     },
     addUser: (data: User, callBack: MysqlCallback) => {
         pool.query(
-            `INSERT INTO web_users (email, first_name, last_name, password) VALUES (?,?,?,?)`,
+            `INSERT INTO web_users (email, first_name, last_name, password, confirmation_token, permitted_pages_id) VALUES (?,?,?,?,?,?)`,
             [
                 data.email,
                 data.name,
                 data.lastname,
-                data.password
+                data.password,
+                data.confirmation_token,
+                data.permitted_pages
             ],
             (error: QueryError) => {
                 if(error) {

@@ -17,7 +17,7 @@ module.exports = {
         })
     },
 
-    authenticateToken: (req: TypedRequestUser<JwtPayload>, res: Response, next: NextFunction) => {
+    authenticateUser: (req: TypedRequestUser<JwtPayload>, res: Response, next: NextFunction) => {
         const authHeader = req.get("authorization");
         const token = authHeader && authHeader.split(' ')[1];
 
@@ -38,6 +38,20 @@ module.exports = {
             req.user = payload.user;
             next();
         })
-    }
+    },
+
+    authorizeUser: (requiredPageIds: number[]) => {
+        return (req: TypedRequestUser<JwtPayload>, res: any, next: NextFunction) => {
+            const pageIds = req.user.permittedPagesId.map(Number);
+            const found = pageIds.some((r :number) => requiredPageIds.includes(r))
+            if(!found) {
+                return res.status(403).json({
+                    status_code: 403,
+                    status_message: "Insufficient permissions",
+                })
+            }
+            next();
+        }
+    },
 }
 

@@ -9,6 +9,8 @@ const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const Joi = require('joi');
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const {sendRegistration} = require("../mail/mailSender");
 
 function validateUser(user: object) {
     const schema = Joi.object({
@@ -48,6 +50,7 @@ module.exports = {
 
             const salt = genSaltSync(10);
             body.password = hashSync(body.password, salt);
+            body.confirmation_token = crypto.randomBytes(32).toString('hex');
             addUser(body, (addUserError: QueryError | null ) => {
                 if(addUserError) {
                     return res.status(500).json({
@@ -55,6 +58,7 @@ module.exports = {
                         status_message: addUserError.message
                     });
                 }
+                sendRegistration(body.email, body.name, body.confirmation_token);
                 return res.status(200).json({
                     status_code: 200,
                     status_message: "User was added successfully"
@@ -80,11 +84,13 @@ module.exports = {
             }
             const result = compareSync(body.password, user.password);
             if(result) {
+                const permittedPagesId: number[] = user.permitted_pages_id.split(",");
                 const payload = {
                     id: user.user_id,
                     email: user.email,
                     name: user.first_name,
-                    lastname: user.last_name
+                    lastname: user.last_name,
+                    permittedPagesId: permittedPagesId
                 }
                 const accessToken = generateAccessToken(payload);
                 const refreshToken = generateRefreshToken(payload);
