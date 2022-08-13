@@ -1,6 +1,6 @@
-import {MysqlCallback} from "../interfaces/Callback";
 import {QueryError, RowDataPacket} from "mysql2";
-import {User} from "../interfaces/User";
+import {NotActivatedUser, User} from "../interfaces/User";
+import {MysqlCallback} from "../interfaces/Callback";
 
 const pool = require("../../config/database");
 const {encrypt} = require("../crypto/cryptoManager");
@@ -20,12 +20,11 @@ module.exports = {
     },
     addUser: (data: User, callBack: MysqlCallback) => {
         pool.query(
-            `INSERT INTO web_users (email, first_name, last_name, password, confirmation_token, permitted_pages_id) VALUES (?,?,?,?,?,?)`,
+            `INSERT INTO web_users (email, first_name, last_name, confirmation_token, permitted_pages_id) VALUES (?,?,?,?,?)`,
             [
                 data.email,
                 data.name,
                 data.lastname,
-                data.password,
                 data.confirmation_token,
                 data.permitted_pages
             ],
@@ -34,6 +33,21 @@ module.exports = {
                     return callBack(error);
                 }
                 return callBack(null);
+            }
+        );
+    },
+    activateUser: (data: NotActivatedUser, callBack: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_users SET password=?, activated=1 WHERE confirmation_token=? AND activated=0`,
+            [
+                data.password,
+                data.token
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callBack(error);
+                }
+                return callBack(null, results);
             }
         );
     },

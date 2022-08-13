@@ -9,5 +9,9 @@ export interface MysqlCallback {
 }
 
 export interface MysqlCallback {
+    (error: QueryError | null, results: number): void;
+}
+
+export interface MysqlCallback {
     (error: QueryError | null ): void;
 }

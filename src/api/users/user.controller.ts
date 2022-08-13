@@ -1,10 +1,10 @@
 import {Request, Response} from "express";
-import {QueryError, RowDataPacket} from "mysql2";
+import {QueryError, ResultSetHeader, RowDataPacket} from "mysql2";
 import {JwtPayload, VerifyErrors} from "jsonwebtoken";
-import {User} from "../interfaces/User";
+import {NotActivatedUser, User} from "../interfaces/User";
 import {TypedRequestUser} from "../interfaces/Request";
 
-const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages} = require("./user.service");
+const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages, activateUser} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const Joi = require('joi');
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
@@ -16,8 +16,7 @@ function validateUser(user: object) {
     const schema = Joi.object({
         email: Joi.string().email().required(),
         name: Joi.string().min(2).required(),
-        lastName: Joi.string().min(2).required(),
-        password: Joi.string().min(5).required()
+        lastName: Joi.string().min(2).required()
     });
     return schema.validate(user);
 }
@@ -48,8 +47,6 @@ module.exports = {
                 });
             }
 
-            const salt = genSaltSync(10);
-            body.password = hashSync(body.password, salt);
             body.confirmation_token = crypto.randomBytes(32).toString('hex');
             addUser(body, (addUserError: QueryError | null ) => {
                 if(addUserError) {
@@ -65,6 +62,24 @@ module.exports = {
                 })
             })
         });
+    },
+
+    activate: (req: Request, res: Response) => {
+        const body: NotActivatedUser = req.body;
+        const salt = genSaltSync(10);
+        body.password = hashSync(body.password, salt);
+        activateUser(body, (activateUserError: QueryError | null, results: ResultSetHeader) => {
+            if(activateUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: activateUserError.message
+                });
+            }
+            return res.json({
+                status_code: 200,
+                affected: results.affectedRows
+            });
+        })
     },
 
     login: (req: Request, res: Response) => {
