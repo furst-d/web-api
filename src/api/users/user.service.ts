@@ -98,7 +98,7 @@ module.exports = {
     },
     getPermittedPages: (userId: number, callback: MysqlCallback) => {
         pool.query (
-            `SELECT DISTINCT path, component_name, description, icon_name FROM web_users
+            `SELECT DISTINCT page_id, path, component_name, description, icon_name FROM web_users
                     INNER JOIN web_pages ON FIND_IN_SET(page_id, permitted_pages_id) != 0
                     WHERE user_id = ?`,
             [userId],

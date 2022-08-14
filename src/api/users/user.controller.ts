@@ -12,27 +12,9 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const {sendRegistration} = require("../mail/mailSender");
 
-function validateUser(user: object) {
-    const schema = Joi.object({
-        email: Joi.string().email().required(),
-        name: Joi.string().min(2).required(),
-        lastName: Joi.string().min(2).required()
-    });
-    return schema.validate(user);
-}
-
 module.exports = {
     register: (req: Request, res: Response) => {
         const body: User = req.body;
-        let {validateUserError} = validateUser(body);
-
-        if(validateUserError) {
-            return res.status(400).json({
-                status_code: 400,
-                status_message: validateUserError.details[0].message
-            });
-        }
-
         getUserByUserEmail(body.email, (getUserError: QueryError | null, user: object) => {
             if(getUserError) {
                 return res.status(500).json({
