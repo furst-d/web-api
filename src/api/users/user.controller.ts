@@ -4,7 +4,8 @@ import {JwtPayload, VerifyErrors} from "jsonwebtoken";
 import {NotActivatedUser, User} from "../interfaces/User";
 import {TypedRequestUser} from "../interfaces/Request";
 
-const { getUserByUserEmail, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages, activateUser} = require("./user.service");
+const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages,
+    activateUser, removeUser, updateUser, resetAccount, getUsers} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const Joi = require('joi');
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
@@ -15,7 +16,7 @@ const {sendRegistration} = require("../mail/mailSender");
 module.exports = {
     register: (req: Request, res: Response) => {
         const body: User = req.body;
-        getUserByUserEmail(body.email, (getUserError: QueryError | null, user: object) => {
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
             if(getUserError) {
                 return res.status(500).json({
                     status_code: 500,
@@ -66,7 +67,7 @@ module.exports = {
 
     login: (req: Request, res: Response) => {
         const body = req.body;
-        getUserByUserEmail(body.username, (err: QueryError | null, user: RowDataPacket) => {
+        getUserByEmail(body.username, (err: QueryError | null, user: RowDataPacket) => {
             if(err) {
                 return res.status(500).json({
                     status_code: 500,
@@ -184,6 +185,105 @@ module.exports = {
                 return res.status(500).json({
                     status_code: 500,
                     status_message: error.message
+                });
+            }
+            if(results) {
+                return res.json({
+                    status_code: 200,
+                    status_message: "OK",
+                    data: results
+                });
+            }
+        });
+    },
+
+    updateUser: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const userId = req.params.id;
+        const body: User = req.body;
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User with this email already exists"
+                });
+            }
+
+            updateUser(userId, body, (updateUserError: QueryError | null ) => {
+                if(updateUserError) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: updateUserError.message
+                    });
+                }
+                return res.status(200).json({
+                    status_code: 200,
+                    status_message: "User was updated successfully"
+                })
+            })
+        });
+    },
+
+    deleteUser: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const userId = req.params.id;
+        removeUser(userId, (error: QueryError | null, results: ResultSetHeader) => {
+            if (error) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: error.message
+                });
+            }
+            return res.json({
+                status_code: 200,
+                affected: results.affectedRows
+            });
+        });
+    },
+
+    resetAccount: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const userId = req.params.id;
+        getUserById(userId, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(!user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User not found"
+                });
+            }
+            const confirmationToken = crypto.randomBytes(32).toString('hex');
+            resetAccount(user.email, confirmationToken, (error: QueryError | null, results: ResultSetHeader) => {
+                if (error) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: error.message
+                    });
+                }
+                sendRegistration(user.email, user.name, confirmationToken);
+                return res.json({
+                    status_code: 200,
+                    affected: results.affectedRows
+                });
+            });
+
+        });
+    },
+
+    getUsers: (req: Request, res: Response) => {
+        getUsers((getUserError: QueryError | null, results: RowDataPacket[]) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
                 });
             }
             if(results) {

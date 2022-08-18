@@ -6,10 +6,33 @@ const pool = require("../../config/database");
 const {encrypt} = require("../crypto/cryptoManager");
 
 module.exports = {
-    getUserByUserEmail: (email: string, callback: MysqlCallback) => {
+    getUsers: (callback: MysqlCallback) => {
+        pool.query (
+            `SELECT user_id, first_name, last_name, activated, permitted_pages_id FROM web_users`,
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callback(error);
+                }
+                return callback(null, results);
+            }
+        )
+    },
+    getUserByEmail: (email: string, callback: MysqlCallback) => {
         pool.query (
             `SELECT * FROM web_users WHERE email = ?`,
             [email],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callback(error);
+                }
+                return callback(null, results[0]);
+            }
+        )
+    },
+    getUserById: (id: number, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT * FROM web_users WHERE user_id = ?`,
+            [id],
             (error: QueryError, results: RowDataPacket[]) => {
                 if(error) {
                     return callback(error);
@@ -109,5 +132,56 @@ module.exports = {
                 return callback(null, results);
             }
         )
+    },
+
+    removeUser: (id: number, callBack: MysqlCallback) => {
+        pool.query(
+            `DELETE FROM web_users WHERE user_id = ?`,
+            [
+                id,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callBack(error);
+                }
+                return callBack(null, results);
+            }
+        );
+    },
+
+    updateUser: (id: number, data: User, callBack: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_users SET email = ?, first_name = ?, last_name = ?, permitted_pages = ? WHERE user_id = ?`,
+            [
+                data.email,
+                data.name,
+                data.lastname,
+                data.permitted_pages,
+                id,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callBack(error);
+                }
+                return callBack(null, results);
+            }
+        );
+    },
+
+    resetAccount: (email: string, token: string,  callBack: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_users SET activated = 0, password = ?, confirmation_token = ? WHERE email = ?`,
+            [
+                null,
+                token,
+                email,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callBack(error);
+                }
+                return callBack(null, results);
+            }
+        );
     },
 }
