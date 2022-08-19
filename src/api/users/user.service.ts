@@ -8,7 +8,7 @@ const {encrypt} = require("../crypto/cryptoManager");
 module.exports = {
     getUsers: (callback: MysqlCallback) => {
         pool.query (
-            `SELECT user_id, first_name, last_name, activated, permitted_pages_id FROM web_users`,
+            `SELECT user_id, email, first_name, last_name, activated, permitted_pages_id FROM web_users`,
             (error: QueryError, results: RowDataPacket[]) => {
                 if(error) {
                     return callback(error);
@@ -21,6 +21,21 @@ module.exports = {
         pool.query (
             `SELECT * FROM web_users WHERE email = ?`,
             [email],
+            (error: QueryError, results: RowDataPacket[]) => {
+                if(error) {
+                    return callback(error);
+                }
+                return callback(null, results[0]);
+            }
+        )
+    },
+    getUserByEmailExceptId: (email: string, id: number, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT * FROM web_users WHERE email = ? AND user_id != ?`,
+            [
+                email,
+                id
+            ],
             (error: QueryError, results: RowDataPacket[]) => {
                 if(error) {
                     return callback(error);
@@ -151,7 +166,7 @@ module.exports = {
 
     updateUser: (id: number, data: User, callBack: MysqlCallback) => {
         pool.query(
-            `UPDATE web_users SET email = ?, first_name = ?, last_name = ?, permitted_pages = ? WHERE user_id = ?`,
+            `UPDATE web_users SET email = ?, first_name = ?, last_name = ?, permitted_pages_id = ? WHERE user_id = ?`,
             [
                 data.email,
                 data.name,

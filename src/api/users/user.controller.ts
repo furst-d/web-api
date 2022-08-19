@@ -5,9 +5,8 @@ import {NotActivatedUser, User} from "../interfaces/User";
 import {TypedRequestUser} from "../interfaces/Request";
 
 const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages,
-    activateUser, removeUser, updateUser, resetAccount, getUsers} = require("./user.service");
+    activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
-const Joi = require('joi');
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -200,7 +199,7 @@ module.exports = {
     updateUser: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const userId = req.params.id;
         const body: User = req.body;
-        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+        getUserByEmailExceptId(body.email, userId, (getUserError: QueryError | null, user: RowDataPacket) => {
             if(getUserError) {
                 return res.status(500).json({
                     status_code: 500,
@@ -278,7 +277,7 @@ module.exports = {
         });
     },
 
-    getUsers: (req: Request, res: Response) => {
+    getUsers: (_req: Request, res: Response) => {
         getUsers((getUserError: QueryError | null, results: RowDataPacket[]) => {
             if(getUserError) {
                 return res.status(500).json({
