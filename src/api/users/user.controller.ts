@@ -1,11 +1,12 @@
 import {Request, Response} from "express";
 import {QueryError, ResultSetHeader, RowDataPacket} from "mysql2";
 import {JwtPayload, VerifyErrors} from "jsonwebtoken";
-import {NotActivatedUser, User} from "../interfaces/User";
+import {NotActivatedUser, PasswordChangeUser, User} from "../interfaces/User";
 import {TypedRequestUser} from "../interfaces/Request";
 
 const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages,
-    activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId} = require("./user.service");
+    activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId, uploadImageSource, changePassword,
+    getActivatedUserByEmail, getProfilePicture} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
@@ -66,7 +67,7 @@ module.exports = {
 
     login: (req: Request, res: Response) => {
         const body = req.body;
-        getUserByEmail(body.username, (err: QueryError | null, user: RowDataPacket) => {
+        getActivatedUserByEmail(body.username, (err: QueryError | null, user: RowDataPacket) => {
             if(err) {
                 return res.status(500).json({
                     status_code: 500,
@@ -196,6 +197,24 @@ module.exports = {
         });
     },
 
+    getAvatar: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        getProfilePicture(req.user.id, (error: QueryError | null, results: RowDataPacket[]) => {
+            if (error) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: error.message
+                });
+            }
+            if(results) {
+                return res.json({
+                    status_code: 200,
+                    status_message: "OK",
+                    data: results[0]
+                });
+            }
+        });
+    },
+
     updateUser: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const userId = req.params.id;
         const body: User = req.body;
@@ -274,6 +293,65 @@ module.exports = {
                 });
             });
 
+        });
+    },
+
+    passwordChange: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const body: PasswordChangeUser = req.body;
+        getUserById(req.user.id, (err: QueryError | null, user: RowDataPacket) => {
+            if(err) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: err.message
+                });
+            }
+            const result = compareSync(body.old_password, user.password);
+            if(result) {
+                const salt = genSaltSync(10);
+                body.new_password = hashSync(body.new_password, salt);
+                changePassword(req.user.id, body.new_password, (error: QueryError | null, results: RowDataPacket[]) => {
+                    if (error) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: error.message
+                        });
+                    }
+                    if(results) {
+                        return res.json({
+                            status_code: 200,
+                            status_message: "Password was changed successfully",
+                        });
+                    }
+                });
+            } else {
+                return res.status(401).json({
+                    status_code: 401,
+                    status_message: "Invalid password"
+                });
+            }
+        });
+    },
+
+    uploadAvatar: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        if (!req.file) {
+            return res.status(400).json({
+                status_code: 400,
+                status_message: "No file uploaded"
+            });
+        }
+        uploadImageSource(req.user.id, req.file.filename, (error: QueryError | null, results: RowDataPacket[]) => {
+            if (error) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: error.message
+                });
+            }
+            if(results) {
+                return res.json({
+                    status_code: 200,
+                    status_message: "Upload successful",
+                });
+            }
         });
     },
 

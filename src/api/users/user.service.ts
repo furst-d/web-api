@@ -8,12 +8,9 @@ const {encrypt} = require("../crypto/cryptoManager");
 module.exports = {
     getUsers: (callback: MysqlCallback) => {
         pool.query (
-            `SELECT user_id, email, first_name, last_name, activated, permitted_pages_id FROM web_users`,
+            `SELECT user_id, email, first_name, last_name, activated, permitted_pages_id, avatar FROM web_users`,
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null, results);
+                return handleResults(error, results, callback);
             }
         )
     },
@@ -22,10 +19,16 @@ module.exports = {
             `SELECT * FROM web_users WHERE email = ?`,
             [email],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null, results[0]);
+                return handleResult(error, results, callback);
+            }
+        )
+    },
+    getActivatedUserByEmail: (email: string, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT * FROM web_users WHERE email = ? AND activated = 1`,
+            [email],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
             }
         )
     },
@@ -37,10 +40,7 @@ module.exports = {
                 id
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null, results[0]);
+                return handleResult(error, results, callback);
             }
         )
     },
@@ -49,14 +49,11 @@ module.exports = {
             `SELECT * FROM web_users WHERE user_id = ?`,
             [id],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null, results[0]);
+                return handleResult(error, results, callback);
             }
         )
     },
-    addUser: (data: User, callBack: MysqlCallback) => {
+    addUser: (data: User, callback: MysqlCallback) => {
         pool.query(
             `INSERT INTO web_users (email, first_name, last_name, confirmation_token, permitted_pages_id) VALUES (?,?,?,?,?)`,
             [
@@ -68,13 +65,13 @@ module.exports = {
             ],
             (error: QueryError) => {
                 if(error) {
-                    return callBack(error);
+                    return callback(error);
                 }
-                return callBack(null);
+                return callback(null);
             }
         );
     },
-    activateUser: (data: NotActivatedUser, callBack: MysqlCallback) => {
+    activateUser: (data: NotActivatedUser, callback: MysqlCallback) => {
         pool.query(
             `UPDATE web_users SET password=?, activated=1 WHERE confirmation_token=? AND activated=0`,
             [
@@ -82,14 +79,11 @@ module.exports = {
                 data.token
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
-    insertRefreshToken: (id: number, refreshToken: string, callBack: MysqlCallback) => {
+    insertRefreshToken: (id: number, refreshToken: string, callback: MysqlCallback) => {
         pool.query(
             `INSERT INTO web_refresh_tokens (user_id, refresh_token) VALUES (?, ?)`,
             [
@@ -97,14 +91,11 @@ module.exports = {
                 encrypt(refreshToken)
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
-    removeRefreshToken: (id: number, refreshToken: string, callBack: MysqlCallback) => {
+    removeRefreshToken: (id: number, refreshToken: string, callback: MysqlCallback) => {
         pool.query(
             `DELETE FROM web_refresh_tokens WHERE user_id = ? AND refresh_token = ?`,
             [
@@ -112,14 +103,11 @@ module.exports = {
                 encrypt(refreshToken)
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
-    containsRefreshToken: (id: number, refreshToken: string, callBack: MysqlCallback) => {
+    containsRefreshToken: (id: number, refreshToken: string, callback: MysqlCallback) => {
         pool.query(
             `SELECT count(refresh_token) count FROM web_users JOIN web_refresh_tokens USING(user_id) WHERE user_id = ? AND refresh_token = ?`,
             [
@@ -127,10 +115,7 @@ module.exports = {
                 encrypt(refreshToken)
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results[0]);
+                return handleResult(error, results, callback);
             }
         );
     },
@@ -141,30 +126,34 @@ module.exports = {
                     WHERE user_id = ?`,
             [userId],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null, results);
+                return handleResults(error, results, callback);
             }
         )
     },
 
-    removeUser: (id: number, callBack: MysqlCallback) => {
+    getProfilePicture: (userId: number, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT avatar FROM web_users WHERE user_id = ?`,
+            [userId],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        )
+    },
+
+    removeUser: (id: number, callback: MysqlCallback) => {
         pool.query(
             `DELETE FROM web_users WHERE user_id = ?`,
             [
                 id,
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
 
-    updateUser: (id: number, data: User, callBack: MysqlCallback) => {
+    updateUser: (id: number, data: User, callback: MysqlCallback) => {
         pool.query(
             `UPDATE web_users SET email = ?, first_name = ?, last_name = ?, permitted_pages_id = ? WHERE user_id = ?`,
             [
@@ -175,15 +164,12 @@ module.exports = {
                 id,
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
 
-    resetAccount: (email: string, token: string,  callBack: MysqlCallback) => {
+    resetAccount: (email: string, token: string,  callback: MysqlCallback) => {
         pool.query(
             `UPDATE web_users SET activated = 0, password = ?, confirmation_token = ? WHERE email = ?`,
             [
@@ -192,11 +178,48 @@ module.exports = {
                 email,
             ],
             (error: QueryError, results: RowDataPacket[]) => {
-                if(error) {
-                    return callBack(error);
-                }
-                return callBack(null, results);
+                return handleResults(error, results, callback);
             }
         );
     },
+
+    uploadImageSource: (id: number, path: string, callback: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_users SET avatar = ? WHERE user_id = ?`,
+            [
+                path,
+                id
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        );
+    },
+
+    changePassword: (id: number, password: string, callback: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_users SET password = ? WHERE user_id = ?`,
+            [
+                password,
+                id
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        );
+    },
+}
+
+const handleResult = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
+    if(error) {
+        return callback(error);
+    }
+    return callback(null, results[0]);
+}
+
+const handleResults = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
+    if(error) {
+        return callback(error);
+    }
+    return callback(null, results);
 }
