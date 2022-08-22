@@ -88,7 +88,8 @@ module.exports = {
                     email: user.email,
                     name: user.first_name,
                     lastname: user.last_name,
-                    permittedPagesId: permittedPagesId
+                    permittedPagesId: permittedPagesId,
+                    registered: user.created_date
                 }
                 const accessToken = generateAccessToken(payload);
                 const refreshToken = generateRefreshToken(payload);

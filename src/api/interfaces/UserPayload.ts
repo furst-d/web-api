@@ -3,4 +3,5 @@ export interface UserPayload {
     email: string;
     name: string;
     lastname: string;
+    registered_datetime: string;
 }
