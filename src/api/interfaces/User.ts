@@ -4,6 +4,7 @@ export interface User {
     lastname: string;
     confirmation_token: string;
     permitted_pages: string;
+    avatar: string;
 }
 
 export interface NotActivatedUser {

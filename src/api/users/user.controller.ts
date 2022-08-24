@@ -6,7 +6,7 @@ import {TypedRequestUser} from "../interfaces/Request";
 
 const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages,
     activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId, uploadImageSource, changePassword,
-    getActivatedUserByEmail, getProfilePicture} = require("./user.service");
+    getActivatedUserByEmail, getProfilePicture, addFriendRequest, addFriendRequestNotification, containsFriendRequest} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
@@ -371,6 +371,207 @@ module.exports = {
                     data: results
                 });
             }
+        });
+    },
+
+    sendFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const email = req.body.email;
+        getUserByEmail(email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                containsFriendRequest(req.user.id, user.user_id, (error: QueryError | null, results: RowDataPacket) => {
+                    if (error) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: error.message
+                        });
+                    }
+                    if (results) {
+                        if(results.count > 0) {
+                            return res.status(400).json({
+                                status_code: 400,
+                                status_message: "Friend request already sent"
+                            });
+                        }
+                        addFriendRequest(req.user.id, user.user_id, (addFriendError: QueryError | null ) => {
+                            if(addFriendError) {
+                                return res.status(500).json({
+                                    status_code: 500,
+                                    status_message: addFriendError.message
+                                });
+                            }
+                            getProfilePicture(req.user.id, (profilePicError: QueryError | null, profilePicResults: RowDataPacket[]) => {
+                                if (profilePicError) {
+                                    return res.status(500).json({
+                                        status_code: 500,
+                                        status_message: profilePicError.message
+                                    });
+                                }
+                                if(profilePicResults) {
+                                    addFriendRequestNotification(user.user_id, req.user, profilePicResults[0].avatar, (addFriendNotError: QueryError | null ) => {
+                                        if(addFriendNotError) {
+                                            return res.status(500).json({
+                                                status_code: 500,
+                                                status_message: addFriendNotError.message
+                                            });
+                                        }
+                                        return res.status(200).json({
+                                            status_code: 200,
+                                            status_message: "Friend request sent"
+                                        })
+                                    })
+                                }
+                            });
+                        });
+                    }
+                });
+            } else {
+                return res.status(400).json({
+                    status_code: 404,
+                    status_message: "User not found"
+                });
+            }
+        });
+    },
+
+    acceptFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const requestId = req.params.id;
+        const body: User = req.body;
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User with this email already exists"
+                });
+            }
+
+            body.confirmation_token = crypto.randomBytes(32).toString('hex');
+            addUser(body, (addUserError: QueryError | null ) => {
+                if(addUserError) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: addUserError.message
+                    });
+                }
+                sendRegistration(body.email, body.name, body.confirmation_token);
+                return res.status(200).json({
+                    status_code: 200,
+                    status_message: "User was added successfully"
+                })
+            })
+        });
+    },
+
+    rejectFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const requestId = req.params.id;
+        const body: User = req.body;
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User with this email already exists"
+                });
+            }
+
+            body.confirmation_token = crypto.randomBytes(32).toString('hex');
+            addUser(body, (addUserError: QueryError | null ) => {
+                if(addUserError) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: addUserError.message
+                    });
+                }
+                sendRegistration(body.email, body.name, body.confirmation_token);
+                return res.status(200).json({
+                    status_code: 200,
+                    status_message: "User was added successfully"
+                })
+            })
+        });
+    },
+
+    cancelFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const requestId = req.params.id;
+        const body: User = req.body;
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User with this email already exists"
+                });
+            }
+
+            body.confirmation_token = crypto.randomBytes(32).toString('hex');
+            addUser(body, (addUserError: QueryError | null ) => {
+                if(addUserError) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: addUserError.message
+                    });
+                }
+                sendRegistration(body.email, body.name, body.confirmation_token);
+                return res.status(200).json({
+                    status_code: 200,
+                    status_message: "User was added successfully"
+                })
+            })
+        });
+    },
+
+    removeFriend: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const friendId = req.params.id;
+        const body: User = req.body;
+        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
+            if(getUserError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getUserError.message
+                });
+            }
+            if(user) {
+                return res.status(400).json({
+                    status_code: 400,
+                    status_message: "User with this email already exists"
+                });
+            }
+
+            body.confirmation_token = crypto.randomBytes(32).toString('hex');
+            addUser(body, (addUserError: QueryError | null ) => {
+                if(addUserError) {
+                    return res.status(500).json({
+                        status_code: 500,
+                        status_message: addUserError.message
+                    });
+                }
+                sendRegistration(body.email, body.name, body.confirmation_token);
+                return res.status(200).json({
+                    status_code: 200,
+                    status_message: "User was added successfully"
+                })
+            })
         });
     },
 }

@@ -64,10 +64,7 @@ module.exports = {
                 data.permitted_pages
             ],
             (error: QueryError) => {
-                if(error) {
-                    return callback(error);
-                }
-                return callback(null);
+                handleErrorResults(error, callback);
             }
         );
     },
@@ -208,6 +205,56 @@ module.exports = {
             }
         );
     },
+
+    addFriendRequest: (senderId: number, recipientId: number, callback: MysqlCallback) => {
+        pool.query(
+            `INSERT INTO web_friend_request (sender_id, recipient_id, status_id) VALUES (?,?, (SELECT type_id FROM web_friend_request_types WHERE name = ?))`,
+            [
+                senderId,
+                recipientId,
+                "PENDING",
+            ],
+            (error: QueryError) => {
+                handleErrorResults(error, callback);
+            }
+        );
+    },
+
+    addFriendRequestNotification: (recipientId: number, sender: User, avatar: string, callback: MysqlCallback) => {
+        const content = {
+            "email": sender.email,
+            "firstname": sender.name,
+            "lastname": sender.lastname,
+            "avatar": avatar,
+        }
+        pool.query(
+            `INSERT INTO web_notifications (notification_type_id, user_id, content) VALUES ((SELECT type_id FROM web_notification_types WHERE name = ?),?,?)`,
+            [
+                "FRIEND_REQUEST",
+                recipientId,
+                JSON.stringify(content),
+            ],
+            (error: QueryError) => {
+                handleErrorResults(error, callback);
+            }
+        );
+    },
+
+    containsFriendRequest: (senderId: number, recipientId: number, callback: MysqlCallback) => {
+        pool.query(
+            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id != (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?))`,
+            [
+                "REJECT",
+                senderId,
+                recipientId,
+                recipientId,
+                senderId
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
+            }
+        );
+    },
 }
 
 const handleResult = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
@@ -222,4 +269,11 @@ const handleResults = (error: QueryError, results: RowDataPacket[], callback: My
         return callback(error);
     }
     return callback(null, results);
+}
+
+const handleErrorResults = (error: QueryError, callback: MysqlCallback) => {
+    if(error) {
+        return callback(error);
+    }
+    return callback(null);
 }

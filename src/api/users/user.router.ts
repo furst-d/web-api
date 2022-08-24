@@ -35,5 +35,10 @@ router.get("/avatar", authenticateUser, controller.getAvatar);
 router.post("/avatar", authenticateUser, upload.single('image'), controller.uploadAvatar);
 router.post("/change-password", authenticateUser, controller.passwordChange);
 router.get("/", authenticateUser, authorizeUser([6]), controller.getUsers);
+router.post("/friend-requests", authenticateUser, controller.sendFriendRequest);
+router.put("/friend-requests/:id/accept", authenticateUser, controller.acceptFriendRequest);
+router.put("/friend-requests/:id/reject", authenticateUser, controller.rejectFriendRequest);
+router.delete("/friend-requests/:id", authenticateUser, controller.cancelFriendRequest);
+router.delete("/friends/:id", authenticateUser, controller.removeFriend);
 
 module.exports = router;
