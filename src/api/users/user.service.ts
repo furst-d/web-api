@@ -220,6 +220,31 @@ module.exports = {
         );
     },
 
+    updateFriendRequest: (requestId: number, status: string, callback: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_friend_request SET status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) WHERE friend_request_id = ?`,
+            [
+                status,
+                requestId
+            ],
+            (error: QueryError) => {
+                handleErrorResults(error, callback);
+            }
+        );
+    },
+
+    removeFriendRequest: (requestId: number, callback: MysqlCallback) => {
+        pool.query(
+            `DELETE FROM web_friend_request WHERE friend_request_id = ?`,
+            [
+                requestId
+            ],
+            (error: QueryError) => {
+                handleErrorResults(error, callback);
+            }
+        );
+    },
+
     addFriendRequestNotification: (recipientId: number, sender: User, avatar: string, callback: MysqlCallback) => {
         const content = {
             "email": sender.email,
@@ -248,6 +273,50 @@ module.exports = {
                 senderId,
                 recipientId,
                 recipientId,
+                senderId
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
+            }
+        );
+    },
+
+    containsPendingRecipientFriendRequest: (requestId: number, recipientId: number, callback: MysqlCallback) => {
+        pool.query(
+            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND recipient_id = ? AND friend_request_id = ?`,
+            [
+                "PENDING",
+                recipientId,
+                requestId,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
+            }
+        );
+    },
+
+    containsPendingSenderFriendRequest: (requestId: number, senderId: number, callback: MysqlCallback) => {
+        pool.query(
+            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND sender_id = ? AND friend_request_id = ?`,
+            [
+                "PENDING",
+                senderId,
+                requestId,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
+            }
+        );
+    },
+
+    containsFriend: (senderId: number, friendId: number, callback: MysqlCallback) => {
+        pool.query(
+            `SELECT friend_request_id, count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND ((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?))`,
+            [
+                "ACCEPT",
+                senderId,
+                friendId,
+                friendId,
                 senderId
             ],
             (error: QueryError, results: RowDataPacket[]) => {

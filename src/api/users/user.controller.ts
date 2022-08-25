@@ -6,7 +6,9 @@ import {TypedRequestUser} from "../interfaces/Request";
 
 const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshToken, containsRefreshToken, getPermittedPages,
     activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId, uploadImageSource, changePassword,
-    getActivatedUserByEmail, getProfilePicture, addFriendRequest, addFriendRequestNotification, containsFriendRequest} = require("./user.service");
+    getActivatedUserByEmail, getProfilePicture, addFriendRequest, addFriendRequestNotification, containsFriendRequest,
+    containsPendingRecipientFriendRequest, updateFriendRequest, containsPendingSenderFriendRequest, removeFriendRequest,
+    containsFriend} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
@@ -441,137 +443,129 @@ module.exports = {
 
     acceptFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const requestId = req.params.id;
-        const body: User = req.body;
-        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
-            if(getUserError) {
+        containsPendingRecipientFriendRequest(requestId, req.user.id, (error: QueryError | null, results: RowDataPacket) => {
+            if (error) {
                 return res.status(500).json({
                     status_code: 500,
-                    status_message: getUserError.message
+                    status_message: error.message
                 });
             }
-            if(user) {
-                return res.status(400).json({
-                    status_code: 400,
-                    status_message: "User with this email already exists"
-                });
-            }
-
-            body.confirmation_token = crypto.randomBytes(32).toString('hex');
-            addUser(body, (addUserError: QueryError | null ) => {
-                if(addUserError) {
-                    return res.status(500).json({
-                        status_code: 500,
-                        status_message: addUserError.message
+            if (results) {
+                if(results.count === 0) {
+                    return res.status(400).json({
+                        status_code: 404,
+                        status_message: "Friend request not found"
                     });
                 }
-                sendRegistration(body.email, body.name, body.confirmation_token);
-                return res.status(200).json({
-                    status_code: 200,
-                    status_message: "User was added successfully"
-                })
-            })
+                updateFriendRequest(requestId, "ACCEPT", (updateFriendRequestError: QueryError | null ) => {
+                    if(updateFriendRequestError) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: updateFriendRequestError.message
+                        });
+                    }
+                    return res.status(200).json({
+                        status_code: 200,
+                        status_message: "Friend request accepted"
+                    })
+                });
+            }
         });
     },
 
     rejectFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const requestId = req.params.id;
-        const body: User = req.body;
-        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
-            if(getUserError) {
+        containsPendingRecipientFriendRequest(requestId, req.user.id, (error: QueryError | null, results: RowDataPacket) => {
+            if (error) {
                 return res.status(500).json({
                     status_code: 500,
-                    status_message: getUserError.message
+                    status_message: error.message
                 });
             }
-            if(user) {
-                return res.status(400).json({
-                    status_code: 400,
-                    status_message: "User with this email already exists"
-                });
-            }
-
-            body.confirmation_token = crypto.randomBytes(32).toString('hex');
-            addUser(body, (addUserError: QueryError | null ) => {
-                if(addUserError) {
-                    return res.status(500).json({
-                        status_code: 500,
-                        status_message: addUserError.message
+            if (results) {
+                if(results.count === 0) {
+                    return res.status(400).json({
+                        status_code: 404,
+                        status_message: "Friend request not found"
                     });
                 }
-                sendRegistration(body.email, body.name, body.confirmation_token);
-                return res.status(200).json({
-                    status_code: 200,
-                    status_message: "User was added successfully"
-                })
-            })
+                updateFriendRequest(requestId, "REJECT", (updateFriendRequestError: QueryError | null ) => {
+                    if(updateFriendRequestError) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: updateFriendRequestError.message
+                        });
+                    }
+                    return res.status(200).json({
+                        status_code: 200,
+                        status_message: "Friend request rejected"
+                    })
+                });
+            }
         });
     },
 
     cancelFriendRequest: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const requestId = req.params.id;
-        const body: User = req.body;
-        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
-            if(getUserError) {
+        containsPendingSenderFriendRequest(requestId, req.user.id, (error: QueryError | null, results: RowDataPacket) => {
+            if (error) {
                 return res.status(500).json({
                     status_code: 500,
-                    status_message: getUserError.message
+                    status_message: error.message
                 });
             }
-            if(user) {
-                return res.status(400).json({
-                    status_code: 400,
-                    status_message: "User with this email already exists"
-                });
-            }
-
-            body.confirmation_token = crypto.randomBytes(32).toString('hex');
-            addUser(body, (addUserError: QueryError | null ) => {
-                if(addUserError) {
-                    return res.status(500).json({
-                        status_code: 500,
-                        status_message: addUserError.message
+            if (results) {
+                if(results.count === 0) {
+                    return res.status(400).json({
+                        status_code: 404,
+                        status_message: "Friend request not found"
                     });
                 }
-                sendRegistration(body.email, body.name, body.confirmation_token);
-                return res.status(200).json({
-                    status_code: 200,
-                    status_message: "User was added successfully"
-                })
-            })
+                removeFriendRequest(requestId, (removeFriendRequestError: QueryError | null ) => {
+                    if(removeFriendRequestError) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: removeFriendRequestError.message
+                        });
+                    }
+                    return res.status(200).json({
+                        status_code: 200,
+                        status_message: "Friend request cancelled"
+                    })
+                });
+            }
         });
     },
 
     removeFriend: (req: TypedRequestUser<JwtPayload>, res: Response) => {
         const friendId = req.params.id;
-        const body: User = req.body;
-        getUserByEmail(body.email, (getUserError: QueryError | null, user: RowDataPacket) => {
-            if(getUserError) {
+        containsFriend(req.user.id, friendId, (error: QueryError | null, results: RowDataPacket) => {
+            if (error) {
                 return res.status(500).json({
                     status_code: 500,
-                    status_message: getUserError.message
+                    status_message: error.message
                 });
             }
-            if(user) {
-                return res.status(400).json({
-                    status_code: 400,
-                    status_message: "User with this email already exists"
-                });
-            }
-
-            body.confirmation_token = crypto.randomBytes(32).toString('hex');
-            addUser(body, (addUserError: QueryError | null ) => {
-                if(addUserError) {
-                    return res.status(500).json({
-                        status_code: 500,
-                        status_message: addUserError.message
+            if (results) {
+                if(results.count === 0) {
+                    return res.status(400).json({
+                        status_code: 404,
+                        status_message: "Friend not found"
                     });
                 }
-                sendRegistration(body.email, body.name, body.confirmation_token);
-                return res.status(200).json({
-                    status_code: 200,
-                    status_message: "User was added successfully"
-                })
-            })
+                removeFriendRequest(results.friend_request_id, (removeFriendError: QueryError | null ) => {
+                    if(removeFriendError) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: removeFriendError.message
+                        });
+                    }
+                    return res.status(200).json({
+                        status_code: 200,
+                        status_message: "Friend removed"
+                    })
+                });
+            }
         });
     },
 }
