@@ -8,7 +8,7 @@ const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshT
     activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId, uploadImageSource, changePassword,
     getActivatedUserByEmail, getProfilePicture, addFriendRequest, addFriendRequestNotification, containsFriendRequest,
     containsPendingRecipientFriendRequest, updateFriendRequest, containsPendingSenderFriendRequest, removeFriendRequest,
-    containsFriend} = require("./user.service");
+    containsFriend, getFriendRequests} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
@@ -364,6 +364,24 @@ module.exports = {
                 return res.status(500).json({
                     status_code: 500,
                     status_message: getUserError.message
+                });
+            }
+            if(results) {
+                return res.json({
+                    status_code: 200,
+                    status_message: "OK",
+                    data: results
+                });
+            }
+        });
+    },
+
+    getFriendRequestList: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        getFriendRequests(req.user.id, (getFriendsError: QueryError | null, results: RowDataPacket[]) => {
+            if(getFriendsError) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: getFriendsError.message
                 });
             }
             if(results) {

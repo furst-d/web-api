@@ -206,6 +206,19 @@ module.exports = {
         );
     },
 
+    getFriendRequests: (userId: number, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT friend_request_id request_id, u1.user_id sender_id, u1.email sender_email, u1.first_name sender_name, u1.last_name sender_lastname, u1.avatar sender_avatar, u2.user_id recipient_id, u2.email recipient_email, u2.first_name recipient_name, u2.last_name recipient_lastname, u2.avatar recipient_avatar, name status FROM web_friend_request r JOIN web_users u1 ON (r.sender_id = u1.user_id) JOIN web_users u2 ON (r.recipient_id = u2.user_id) JOIN web_friend_request_types t on (r.status_id = t.type_id) WHERE sender_id = ? OR recipient_id = ?`,
+            [
+                userId,
+                userId,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        )
+    },
+
     addFriendRequest: (senderId: number, recipientId: number, callback: MysqlCallback) => {
         pool.query(
             `INSERT INTO web_friend_request (sender_id, recipient_id, status_id) VALUES (?,?, (SELECT type_id FROM web_friend_request_types WHERE name = ?))`,
