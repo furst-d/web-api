@@ -258,7 +258,7 @@ module.exports = {
         );
     },
 
-    addFriendRequestNotification: (recipientId: number, sender: User, avatar: string, callback: MysqlCallback) => {
+    addFriendRequestNotification: (recipientId: number, sender: User, avatar: string, type: string, callback: MysqlCallback) => {
         const content = {
             "email": sender.email,
             "firstname": sender.name,
@@ -268,7 +268,7 @@ module.exports = {
         pool.query(
             `INSERT INTO web_notifications (notification_type_id, user_id, content) VALUES ((SELECT type_id FROM web_notification_types WHERE name = ?),?,?)`,
             [
-                "FRIEND_REQUEST",
+                type,
                 recipientId,
                 JSON.stringify(content),
             ],
@@ -296,7 +296,7 @@ module.exports = {
 
     containsPendingRecipientFriendRequest: (requestId: number, recipientId: number, callback: MysqlCallback) => {
         pool.query(
-            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND recipient_id = ? AND friend_request_id = ?`,
+            `SELECT sender_id, count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND recipient_id = ? AND friend_request_id = ?`,
             [
                 "PENDING",
                 recipientId,
@@ -310,9 +310,9 @@ module.exports = {
 
     containsPendingSenderFriendRequest: (requestId: number, senderId: number, callback: MysqlCallback) => {
         pool.query(
-            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id = (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND sender_id = ? AND friend_request_id = ?`,
+            `SELECT count(friend_request_id) count FROM web_friend_request WHERE status_id != (SELECT type_id FROM web_friend_request_types WHERE name = ?) AND sender_id = ? AND friend_request_id = ?`,
             [
-                "PENDING",
+                "ACCEPT",
                 senderId,
                 requestId,
             ],

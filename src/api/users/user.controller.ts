@@ -433,7 +433,7 @@ module.exports = {
                                     });
                                 }
                                 if(profilePicResults) {
-                                    addFriendRequestNotification(user.user_id, req.user, profilePicResults[0].avatar, (addFriendNotError: QueryError | null ) => {
+                                    addFriendRequestNotification(user.user_id, req.user, profilePicResults[0].avatar, "FRIEND_REQUEST_RECEIVED", (addFriendNotError: QueryError | null ) => {
                                         if(addFriendNotError) {
                                             return res.status(500).json({
                                                 status_code: 500,
@@ -451,7 +451,7 @@ module.exports = {
                     }
                 });
             } else {
-                return res.status(400).json({
+                return res.status(404).json({
                     status_code: 404,
                     status_message: "User not found"
                 });
@@ -470,7 +470,7 @@ module.exports = {
             }
             if (results) {
                 if(results.count === 0) {
-                    return res.status(400).json({
+                    return res.status(404).json({
                         status_code: 404,
                         status_message: "Friend request not found"
                     });
@@ -482,10 +482,28 @@ module.exports = {
                             status_message: updateFriendRequestError.message
                         });
                     }
-                    return res.status(200).json({
-                        status_code: 200,
-                        status_message: "Friend request accepted"
-                    })
+                    getProfilePicture(req.user.id, (profilePicError: QueryError | null, profilePicResults: RowDataPacket[]) => {
+                        if (profilePicError) {
+                            return res.status(500).json({
+                                status_code: 500,
+                                status_message: profilePicError.message
+                            });
+                        }
+                        if(profilePicResults) {
+                            addFriendRequestNotification(results.sender_id, req.user, profilePicResults[0].avatar, "FRIEND_REQUEST_ACCEPT", (addFriendNotError: QueryError | null ) => {
+                                if(addFriendNotError) {
+                                    return res.status(500).json({
+                                        status_code: 500,
+                                        status_message: addFriendNotError.message
+                                    });
+                                }
+                                return res.status(200).json({
+                                    status_code: 200,
+                                    status_message: "Friend request accepted"
+                                })
+                            })
+                        }
+                    });
                 });
             }
         });
@@ -502,7 +520,7 @@ module.exports = {
             }
             if (results) {
                 if(results.count === 0) {
-                    return res.status(400).json({
+                    return res.status(404).json({
                         status_code: 404,
                         status_message: "Friend request not found"
                     });
@@ -534,7 +552,7 @@ module.exports = {
             }
             if (results) {
                 if(results.count === 0) {
-                    return res.status(400).json({
+                    return res.status(404).json({
                         status_code: 404,
                         status_message: "Friend request not found"
                     });
@@ -566,7 +584,7 @@ module.exports = {
             }
             if (results) {
                 if(results.count === 0) {
-                    return res.status(400).json({
+                    return res.status(404).json({
                         status_code: 404,
                         status_message: "Friend not found"
                     });
