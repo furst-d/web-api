@@ -337,6 +337,18 @@ module.exports = {
             }
         );
     },
+
+    getUserNotifications: (userId: number, callback: MysqlCallback) => {
+        pool.query (
+            `SELECT notification_id, name type, content, seen, created_date FROM web_notifications JOIN web_notification_types ON (notification_Type_id = type_id) WHERE user_id = ? ORDER BY created_date DESC`,
+            [
+                userId,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        )
+    },
 }
 
 const handleResult = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
