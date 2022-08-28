@@ -8,7 +8,7 @@ const { getUserByEmail, getUserById, addUser, insertRefreshToken, removeRefreshT
     activateUser, removeUser, updateUser, resetAccount, getUsers, getUserByEmailExceptId, uploadImageSource, changePassword,
     getActivatedUserByEmail, getProfilePicture, addFriendRequest, addFriendRequestNotification, containsFriendRequest,
     containsPendingRecipientFriendRequest, updateFriendRequest, containsPendingSenderFriendRequest, removeFriendRequest,
-    containsFriend, getFriendRequests, getUserNotifications} = require("./user.service");
+    containsFriend, getFriendRequests, getUserNotifications, containsUserNotification, updateSeenNotification} = require("./user.service");
 const { genSaltSync, hashSync, compareSync} = require("bcrypt");
 const { generateAccessToken, generateRefreshToken } = require("../auth/authManager");
 const jwt = require("jsonwebtoken");
@@ -618,6 +618,38 @@ module.exports = {
                     status_code: 200,
                     status_message: "OK",
                     data: results
+                });
+            }
+        });
+    },
+
+    setSeenNotification: (req: TypedRequestUser<JwtPayload>, res: Response) => {
+        const notificationId = req.params.id;
+        containsUserNotification(notificationId, req.user.id, (error: QueryError | null, results: RowDataPacket) => {
+            if (error) {
+                return res.status(500).json({
+                    status_code: 500,
+                    status_message: error.message
+                });
+            }
+            if (results) {
+                if(results.count === 0) {
+                    return res.status(404).json({
+                        status_code: 404,
+                        status_message: "Notification not found"
+                    });
+                }
+                updateSeenNotification(notificationId, (updateSeenError: QueryError | null ) => {
+                    if(updateSeenError) {
+                        return res.status(500).json({
+                            status_code: 500,
+                            status_message: updateSeenError.message
+                        });
+                    }
+                    return res.status(200).json({
+                        status_code: 200,
+                        status_message: "Notification set to seen"
+                    })
                 });
             }
         });

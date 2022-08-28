@@ -42,5 +42,6 @@ router.put("/friend-requests/:id/reject", authenticateUser, controller.rejectFri
 router.delete("/friend-requests/:id", authenticateUser, controller.cancelFriendRequest);
 router.delete("/friends/:id", authenticateUser, controller.removeFriend);
 router.get("/notifications", authenticateUser, controller.getNotifications);
+router.put("/notifications/:id/seen", authenticateUser, controller.setSeenNotification);
 
 module.exports = router;

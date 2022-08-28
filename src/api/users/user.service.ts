@@ -349,6 +349,31 @@ module.exports = {
             }
         )
     },
+
+    containsUserNotification: (notificationId: number, userId: number, callback: MysqlCallback) => {
+        pool.query(
+            `SELECT count(notification_id) count FROM web_notifications WHERE notification_id = ? AND user_id = ?`,
+            [
+                notificationId,
+                userId,
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResult(error, results, callback);
+            }
+        );
+    },
+
+    updateSeenNotification: (notificationId: number, callback: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_notifications SET seen = 1 WHERE notification_id = ?`,
+            [
+                notificationId,
+            ],
+            (error: QueryError) => {
+                handleErrorResults(error, callback);
+            }
+        );
+    },
 }
 
 const handleResult = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
