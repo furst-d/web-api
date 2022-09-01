@@ -25,7 +25,7 @@ module.exports = {
 
     getIngredients: (callback: MysqlCallback) => {
         pool.query (
-            `SELECT ingredient_id, name, allergen_ids FROM web_cookbook_ingredients`,
+            `SELECT ingredient_id, name, allergen_ids FROM web_cookbook_ingredients ORDER BY name`,
             (error: QueryError, results: RowDataPacket[]) => {
                 return handleResults(error, results, callback);
             }
@@ -39,18 +39,37 @@ module.exports = {
                 data.name,
                 data.allergenIds,
             ],
-            (error: QueryError) => {
-                handleErrorResults(error, callback);
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
             }
         );
     },
-}
 
-const handleErrorResults = (error: QueryError, callback: MysqlCallback) => {
-    if(error) {
-        return callback(error);
-    }
-    return callback(null);
+    updateIngredient: (data: Ingredient, id: number, callback: MysqlCallback) => {
+        pool.query(
+            `UPDATE web_cookbook_ingredients SET name = ?, allergen_ids = ? WHERE ingredient_id = ?`,
+            [
+                data.name,
+                data.allergenIds,
+                id
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        );
+    },
+
+    deleteIngredient: (id: number, callback: MysqlCallback) => {
+        pool.query(
+            `DELETE FROM web_cookbook_ingredients WHERE ingredient_id = ?`,
+            [
+                id
+            ],
+            (error: QueryError, results: RowDataPacket[]) => {
+                return handleResults(error, results, callback);
+            }
+        );
+    },
 }
 
 const handleResults = (error: QueryError, results: RowDataPacket[], callback: MysqlCallback) => {
